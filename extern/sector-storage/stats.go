@@ -38,25 +38,25 @@ func (m *Manager) WorkerJobs() map[uuid.UUID][]storiface.WorkerJob {
 		calls[t.job.ID] = struct{}{}
 	}
 
-	m.sched.workersLk.RLock()
+	// m.sched.workersLk.RLock()
 
-	for id, handle := range m.sched.workers {
-		handle.wndLk.Lock()
-		for wi, window := range handle.activeWindows {
-			for _, request := range window.todo {
-				out[uuid.UUID(id)] = append(out[uuid.UUID(id)], storiface.WorkerJob{
-					ID:      storiface.UndefCall,
-					Sector:  request.sector.ID,
-					Task:    request.taskType,
-					RunWait: wi + 1,
-					Start:   request.start,
-				})
-			}
-		}
-		handle.wndLk.Unlock()
-	}
+	// for id, handle := range m.sched.workers {
+	// 	handle.wndLk.Lock()
+	// 	for wi, window := range handle.activeWindows {
+	// 		for _, request := range window.todo {
+	// 			out[uuid.UUID(id)] = append(out[uuid.UUID(id)], storiface.WorkerJob{
+	// 				ID:      storiface.UndefCall,
+	// 				Sector:  request.sector.ID,
+	// 				Task:    request.taskType,
+	// 				RunWait: wi + 1,
+	// 				Start:   request.start,
+	// 			})
+	// 		}
+	// 	}
+	// 	handle.wndLk.Unlock()
+	// }
 
-	m.sched.workersLk.RUnlock()
+	// m.sched.workersLk.RUnlock()
 
 	m.workLk.Lock()
 	defer m.workLk.Unlock()

@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	scServer "github.com/moran666666/sector-counter/server"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	mux "github.com/gorilla/mux"
@@ -36,6 +38,41 @@ var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start a lotus miner process",
 	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "wdpost",
+			Usage: "enable windowPoSt",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "wnpost",
+			Usage: "enable winningPoSt",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "p2p",
+			Usage: "enable P2P",
+			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "sctype",
+			Usage: "sector counter type(alloce,get)",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "sclisten",
+			Usage: "host address and port the sector counter will listen on",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "workername",
+			Usage: "worker name will display on jobs list",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "ability",
+			Usage: "worker sealing ability",
+			Value: "AP:1,PC1:1,PC2:1,C1:1,C2:1,FIN:1,GET:1,UNS:1,RD:1",
+		},
 		&cli.StringFlag{
 			Name:  "miner-api",
 			Usage: "2345",
@@ -56,6 +93,45 @@ var runCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		if cctx.Bool("wdpost") {
+			os.Setenv("LOTUS_WDPOST", "true")
+		} else {
+			os.Unsetenv("LOTUS_WDPOST")
+		}
+
+		if cctx.Bool("wnpost") {
+			os.Setenv("LOTUS_WNPOST", "true")
+		} else {
+			os.Unsetenv("LOTUS_WNPOST")
+		}
+
+		scType := cctx.String("sctype")
+		if scType == "alloce" || scType == "get" {
+			os.Setenv("SC_TYPE", scType)
+
+			scListen := cctx.String("sclisten")
+			if scListen == "" {
+				log.Errorf("sclisten must be set")
+				return nil
+			}
+			os.Setenv("SC_LISTEN", scListen)
+
+			if scType == "alloce" {
+				scFilePath := filepath.Join(cctx.String(FlagMinerRepo), "sectorid")
+				go scServer.Run(scFilePath)
+			}
+		} else {
+			os.Unsetenv("SC_TYPE")
+		}
+
+		if cctx.String("workername") != "" {
+			os.Setenv("WORKER_NAME", cctx.String("workername"))
+		}
+
+		if cctx.String("ability") != "" {
+			os.Setenv("ABILITY", cctx.String("ability"))
+		}
+
 		if !cctx.Bool("enable-gpu-proving") {
 			err := os.Setenv("BELLMAN_NO_GPU", "true")
 			if err != nil {
@@ -138,14 +214,18 @@ var runCmd = &cli.Command{
 			return xerrors.Errorf("getting API endpoint: %w", err)
 		}
 
-		// Bootstrap with full node
-		remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
-		if err != nil {
-			return xerrors.Errorf("getting full node libp2p address: %w", err)
-		}
+		if cctx.Bool("p2p") {
+			// Bootstrap with full node
+			remoteAddrs, err := nodeApi.NetAddrsListen(ctx)
+			if err != nil {
+				return xerrors.Errorf("getting full node libp2p address: %w", err)
+			}
 
-		if err := minerapi.NetConnect(ctx, remoteAddrs); err != nil {
-			return xerrors.Errorf("connecting to full node (libp2p): %w", err)
+			if err := minerapi.NetConnect(ctx, remoteAddrs); err != nil {
+				return xerrors.Errorf("connecting to full node (libp2p): %w", err)
+			}
+		} else {
+			log.Warn("This miner will be disable p2p.")
 		}
 
 		log.Infof("Remote version %s", v)

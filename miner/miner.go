@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -115,7 +116,11 @@ func (m *Miner) Start(ctx context.Context) error {
 		return fmt.Errorf("miner already started")
 	}
 	m.stop = make(chan struct{})
-	go m.mine(context.TODO())
+	if _, ok := os.LookupEnv("LOTUS_WNPOST"); ok {
+		go m.mine(context.TODO())
+	} else {
+		log.Warnf("This miner will be disable minning block function.")
+	}
 	return nil
 }
 

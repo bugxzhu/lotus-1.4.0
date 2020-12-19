@@ -85,24 +85,39 @@ var sealingWorkersCmd = &cli.Command{
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)
-			cpuBar := strings.Repeat("|", cpuBars) + strings.Repeat(" ", int(barCols)-cpuBars)
+			cpuBar := ""
+			if int(barCols)-cpuBars > 0 {
+				cpuBar = strings.Repeat("|", cpuBars) + strings.Repeat(" ", int(barCols)-cpuBars)
+			} else {
+				cpuBar = strings.Repeat("|", int(barCols))
+			}
 
 			fmt.Printf("\tCPU:  [%s] %d/%d core(s) in use\n",
 				color.GreenString(cpuBar), stat.CpuUse, stat.Info.Resources.CPUs)
 
 			ramBarsRes := int(stat.Info.Resources.MemReserved * barCols / stat.Info.Resources.MemPhysical)
 			ramBarsUsed := int(stat.MemUsedMin * barCols / stat.Info.Resources.MemPhysical)
-			ramBar := color.YellowString(strings.Repeat("|", ramBarsRes)) +
-				color.GreenString(strings.Repeat("|", ramBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			ramBar := ""
+			if int(barCols)-ramBarsUsed-ramBarsRes > 0 {
+				ramBar = color.YellowString(strings.Repeat("|", ramBarsRes)) +
+					color.GreenString(strings.Repeat("|", ramBarsUsed)) +
+					strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			} else {
+				ramBar = strings.Repeat("|", int(barCols))
+			}
 
 			vmem := stat.Info.Resources.MemPhysical + stat.Info.Resources.MemSwap
 
 			vmemBarsRes := int(stat.Info.Resources.MemReserved * barCols / vmem)
 			vmemBarsUsed := int(stat.MemUsedMax * barCols / vmem)
-			vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
-				color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			vmemBar := ""
+			if int(barCols)-vmemBarsUsed-vmemBarsRes > 0 {
+				vmemBar = color.YellowString(strings.Repeat("|", vmemBarsRes)) +
+					color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
+					strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			} else {
+				vmemBar = strings.Repeat("|", int(barCols))
+			}
 
 			fmt.Printf("\tRAM:  [%s] %d%% %s/%s\n", ramBar,
 				(stat.Info.Resources.MemReserved+stat.MemUsedMin)*100/stat.Info.Resources.MemPhysical,
