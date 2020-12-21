@@ -104,6 +104,11 @@ var runCmd = &cli.Command{
 	Usage: "Start lotus worker",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Name:  "c2address",
+			Usage: "extern c2 ip and port",
+			Value: "",
+		},
+		&cli.StringFlag{
 			Name:  "rpc",
 			Usage: "worker rpc ip and port",
 			Value: "",
@@ -185,6 +190,9 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		log.Info("Starting lotus worker")
 
+		if cctx.String("c2address") != "" {
+			os.Setenv("C2_ADDRESS", cctx.String("c2address"))
+		}
 		if cctx.String("workername") != "" {
 			os.Setenv("WORKER_NAME", cctx.String("workername"))
 		}
