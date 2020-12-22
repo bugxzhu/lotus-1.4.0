@@ -301,7 +301,7 @@ func (sh *scheduler) trySched() {
 				continue
 			}
 
-			if task.taskType == sealtasks.TTPreCommit2 || task.taskType == sealtasks.TTCommit1 {
+			if task.taskType == sealtasks.TTPreCommit1 || task.taskType == sealtasks.TTPreCommit2 || task.taskType == sealtasks.TTCommit1 {
 				if isExist := task.sel.FindDataWoker(task.ctx, task.taskType, task.sector.ID, task.sector.ProofType, worker); !isExist {
 					continue
 				}
