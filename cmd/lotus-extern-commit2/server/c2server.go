@@ -87,7 +87,7 @@ func HandleCommit2(w http.ResponseWriter, req *http.Request) {
 		log.Errorf("request json unmarshel error: %+v", err)
 		return
 	}
-	fmt.Println("test============== 解析C2任务成功，开始做证明:", request)
+	fmt.Println("test============== 解析C2任务成功，开始做证明......")
 
 	// log.Info("request commit2 : ", request)
 
@@ -107,7 +107,7 @@ func HandleCommit2(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	io.WriteString(w, string(jsonResponse)) // io.Copy(w, string(jsonResponse))
-	fmt.Println("test============== 返回C2任务:", jsonResponse)
+	fmt.Println("test============== 返回C2任务......")
 	// log.Info("response commit2 : ", jsonResponse)
 }
 
