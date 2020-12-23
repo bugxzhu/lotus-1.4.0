@@ -8,21 +8,22 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"context"
 
+	"github.com/docker/go-units"
 	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper/basicfs"
 	"github.com/filecoin-project/specs-storage/storage"
 
-	"github.com/filecoin-project/lotus/build"
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
-	"github.com/filecoin-project/lotus/chain/actors/policy"
 )
 
 var log = logging.Logger("lotus-c2server")
@@ -30,8 +31,10 @@ var log = logging.Logger("lotus-c2server")
 func main() {
 	remoteAddress := flag.String("remote", "127.0.0.1:16800", "scheduler http listen address")
 	localAddress := flag.String("local", "127.0.0.1:26800", "c2 host http listen address")
+	workPath := flag.String("workpath", "~/.c2path", "c2 work path")
 	flag.Parse()
 
+	os.Setenv("C2_PATH", *workPath)
 	go Register(*remoteAddress, *localAddress)
 
 	fmt.Println("C2 计算主机启动: ", *localAddress)
@@ -64,11 +67,6 @@ func Pong(w http.ResponseWriter, req *http.Request) {
 
 // HandleCommit2 调用C2处理函数
 func HandleCommit2(w http.ResponseWriter, req *http.Request) {
-	// reqBody, err := ioutil.ReadAll(req.Body)
-	// if err != nil {
-	// 	log.Errorf("ioutil read c2 request body err: %+v", err)
-	// 	return
-	// }
 	fmt.Println("test============== 接收到C2任务")
 	reqBody, err := gzip.NewReader(req.Body)
 	if err != nil {
@@ -89,9 +87,7 @@ func HandleCommit2(w http.ResponseWriter, req *http.Request) {
 	}
 	fmt.Println("test============== 解析C2任务成功，开始做证明......")
 
-	// log.Info("request commit2 : ", request)
-
-	proof, err := doC2Job(34359738368, request) // 调用c2函数做任务
+	proof, err := doC2Job(request) // 调用c2函数做任务
 	if err != nil {
 	}
 	fmt.Println("test============== C2任务完成")
@@ -108,7 +104,6 @@ func HandleCommit2(w http.ResponseWriter, req *http.Request) {
 	}
 	io.WriteString(w, string(jsonResponse)) // io.Copy(w, string(jsonResponse))
 	fmt.Println("test============== 返回C2任务......")
-	// log.Info("response commit2 : ", jsonResponse)
 }
 
 // Commit2Request C2请求结构体
@@ -124,15 +119,23 @@ type Commit2Response struct {
 }
 
 // doC2Job 做C2任务
-func doC2Job(sectorSize uint64, c2Req Commit2Request) (storage.Proof, error) {
-	policy.AddSupportedProofTypes(abi.RegisteredSealProof_StackedDrg2KiBV1)
-
-	sb, err := ffiwrapper.New(&basicfs.Provider{Root: ""})
+func doC2Job(c2Req Commit2Request) (storage.Proof, error) {
+	rootPath, _ := os.LookupEnv("C2_PATH")
+	sbfs := &basicfs.Provider{
+		Root: rootPath,
+	}
+	sb, err := ffiwrapper.New(sbfs)
 	if err != nil {
 		return nil, err
 	}
 
-	spt, err := miner.SealProofTypeFromSectorSize(abi.SectorSize(sectorSize), build.NewestNetworkVersion)
+	sectorSizeInt, err := units.RAMInBytes("32GiB")
+	if err != nil {
+		return nil, err
+	}
+	sectorSize := abi.SectorSize(sectorSizeInt)
+	spt, err := miner.SealProofTypeFromSectorSize(sectorSize, build.NewestNetworkVersion)
+	// spt, err := miner.SealProofTypeFromSectorSize(abi.SectorSize(sectorSize), genesis.GenesisNetworkVersion)
 	if err != nil {
 		panic(err)
 	}
