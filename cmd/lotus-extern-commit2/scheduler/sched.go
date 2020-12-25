@@ -76,8 +76,8 @@ func (p *C2Proxy) EnableHost(key string) {
 	}
 }
 
-// GetFreeHost 获取空闲的C2主机
-func (p *C2Proxy) GetFreeHost() string {
+// GetFreeHost0 获取空闲的C2主机
+func (p *C2Proxy) GetFreeHost0() string {
 	p.HostListLk.Lock()
 	defer p.HostListLk.Unlock()
 	for host, hostInfo := range GlobleProxy.HostList {
@@ -88,12 +88,57 @@ func (p *C2Proxy) GetFreeHost() string {
 	return ""
 }
 
+// GetFreeHost 获取空闲的C2主机
+func (p *C2Proxy) GetFreeHost() string {
+	p.HostListLk.Lock()
+	defer p.HostListLk.Unlock()
+	hostList := make([]string, 0)
+	for k := range p.HostList { //先将主机清单copy出来
+		hostList = append(hostList, k)
+	}
+
+	for _, host := range hostList { // 检测c2主机是否存活
+		hostInfo := p.HostList[host]
+		if checkHostHeart(host) && hostInfo.Active {
+			return host
+		}
+	}
+
+	return ""
+}
+
+func checkHostHeart(host string) bool {
+	resp, err := http.Get(fmt.Sprintf("http://%s/commit2/ping", host))
+	if err != nil {
+		GlobleProxy.DeleteHost(host)
+		fmt.Println("test==============", host, "1心跳检测失败")
+		fmt.Println(err)
+		return false
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		GlobleProxy.DeleteHost(host)
+		fmt.Println("test==============", host, "2心跳检测失败")
+		fmt.Println(err)
+		return false
+	}
+	if string(respBody) != "pong" {
+		GlobleProxy.DeleteHost(host)
+		fmt.Println("test==============", host, "3心跳检测失败")
+		fmt.Println("ping err: ", host)
+		return false
+	}
+	resp.Body.Close()
+	fmt.Println("test==============", host, "心跳检测正常")
+	return true
+}
+
 func main() {
 	localAddress := flag.String("local", "127.0.0.1:16800", "http listen address")
 	flag.Parse()
 
 	GlobleProxy.ProxyInit()
-	go checkHeart()
+	// go checkHeart()
 
 	fmt.Println("调度器启动: ", *localAddress)
 	http.HandleFunc("/proxy/register", HandleRegister)
