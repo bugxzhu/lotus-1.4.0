@@ -98,8 +98,12 @@ func (p *C2Proxy) GetFreeHost() string {
 	}
 
 	for _, host := range hostList { // 检测c2主机是否存活
-		hostInfo := p.HostList[host]
-		if checkHostHeart(host) && hostInfo.Active {
+		if !checkHostHeart(host) {
+			delete(p.HostList, host)
+			continue
+		}
+		hostInfo := GlobleProxy.HostList[host]
+		if hostInfo.Active {
 			return host
 		}
 	}
@@ -110,20 +114,17 @@ func (p *C2Proxy) GetFreeHost() string {
 func checkHostHeart(host string) bool {
 	resp, err := http.Get(fmt.Sprintf("http://%s/commit2/ping", host))
 	if err != nil {
-		GlobleProxy.DeleteHost(host)
 		fmt.Println("test==============", host, "1心跳检测失败")
 		fmt.Println(err)
 		return false
 	}
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		GlobleProxy.DeleteHost(host)
 		fmt.Println("test==============", host, "2心跳检测失败")
 		fmt.Println(err)
 		return false
 	}
 	if string(respBody) != "pong" {
-		GlobleProxy.DeleteHost(host)
 		fmt.Println("test==============", host, "3心跳检测失败")
 		fmt.Println("ping err: ", host)
 		return false
