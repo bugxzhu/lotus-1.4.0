@@ -526,7 +526,7 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 
 func (sb *Sealer) SealCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.Commit1Out) (storage.Proof, error) {
 	if c2Address, ok := os.LookupEnv("C2_ADDRESS"); ok {
-		log.Warn("Seal extern commit2 .......................")
+		log.Warn("Do the extern commit2 task ......")
 		return RequestCommit2(sector.ID, phase1Out, c2Address)
 	}
 	return ffi.SealCommitPhase2(phase1Out, sector.ID.Number, sector.ID.Miner)
@@ -706,8 +706,6 @@ func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address
 		return nil, err
 	}
 
-	log.Info("send commit2 request to remote service")
-
 	zBuf := new(bytes.Buffer)
 	zw := gzip.NewWriter(zBuf)
 	if _, err = zw.Write(b); err != nil {
@@ -726,8 +724,7 @@ func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address
 	req.Header.Set("Content-Type", "application/json;charset=utf-8")
 	req.Header.Set("Content-Encoding", "gzip")
 
-	log.Info("request commit2 from remote service ..................")
-
+	log.Info("Send commit2 task to remote service ......")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("do request err: ", err)
@@ -737,7 +734,6 @@ func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address
 		log.Errorf("http client do code: %d err: %+v", resp.StatusCode, err)
 		return nil, err
 	}
-	log.Info("request commit2 ended")
 	defer resp.Body.Close()
 
 	result, err := ioutil.ReadAll(resp.Body)
@@ -753,7 +749,7 @@ func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address
 		return nil, err
 	}
 
-	log.Info("response commit2 result: ", response)
+	log.Info("Receive commit2 result success......")
 
 	return response.Proof, nil
 }
