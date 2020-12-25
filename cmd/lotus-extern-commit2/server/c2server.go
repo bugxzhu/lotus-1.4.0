@@ -85,7 +85,7 @@ func HandleCommit2(w http.ResponseWriter, req *http.Request) {
 		log.Errorf("request json unmarshel error: %+v", err)
 		return
 	}
-	fmt.Println("test============== 解析C2任务成功，开始做证明......")
+	fmt.Println("test============== 解析扇区 ", request.SectorID.Number, " C2任务成功，开始做证明......")
 
 	proof, err := doC2Job(request) // 调用c2函数做任务
 	if err != nil {

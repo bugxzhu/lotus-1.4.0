@@ -526,7 +526,7 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 
 func (sb *Sealer) SealCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.Commit1Out) (storage.Proof, error) {
 	if c2Address, ok := os.LookupEnv("C2_ADDRESS"); ok {
-		log.Warn("Do the extern commit2 task ......")
+		log.Warnf("Sector %d do the extern commit2 task ......", sector.ID.Number)
 		return RequestCommit2(sector.ID, phase1Out, c2Address)
 	}
 	return ffi.SealCommitPhase2(phase1Out, sector.ID.Number, sector.ID.Miner)
