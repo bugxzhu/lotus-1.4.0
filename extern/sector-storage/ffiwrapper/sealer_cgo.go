@@ -724,12 +724,13 @@ func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address
 	req.Header.Set("Content-Type", "application/json;charset=utf-8")
 	req.Header.Set("Content-Encoding", "gzip")
 
-	log.Info("Send commit2 task to remote service ......")
+	log.Info("Send commit2 task to extern server and wait for response ......")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error("do request err: ", err)
 		return nil, err
 	}
+
 	if resp.StatusCode != 200 {
 		log.Errorf("http client do code: %d err: %+v", resp.StatusCode, err)
 		return nil, err
